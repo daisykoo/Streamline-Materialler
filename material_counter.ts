@@ -1,22 +1,11 @@
 import { WorkBook, CellObject } from 'xlsx';
 
-export interface MaterialCounterConfig {
-  sheets:TargetData;
-  state:StateType;
-  custom_states?:string[];
-}
-
-export enum StateType {
-  waiting,
-  done,
-  custom,
-}
-
-export interface TargetData {
-  [sheet:string]:{
-    start?:number;
-    end?:number;
-  };
+export interface OrderData {
+  desc:string;
+  mtype:string;
+  amt:number;
+  sheet:string;
+  line:number;
 }
 
 export interface PCABSRes {
@@ -49,7 +38,7 @@ export type Result = PCABSRes & AF365FRes & GP22Res & A558Res & H121Res;
 
 const exprs = {
   door: /门面/,
-  ctl: /薄控|电控|机控|薄膜控制面板|薄膜控盒/,
+  ctl: /薄控|电控|机控|薄膜控制面板|薄膜控盒|控盒/,
   gray: /灰色|原色/,
   black: /黑色/,
   white: /白/,
@@ -57,11 +46,10 @@ const exprs = {
   '121H_3L': /X20L G3 门面 白色/,
   'PCABS_3L': /X20L 3L 薄控 白色/,
   YK: /17L YK 门面 美的白/,
-  special: /WU|C3|K20L 2SH 拨码旋钮/,
+  special: /WU|K20L 2SH 拨码旋钮/,
 };
 
-export function counter(wb:WorkBook, cfg:MaterialCounterConfig) {
-  const sheets = Object.keys(cfg.sheets);
+export function counter(orders:OrderData[]) {
   const res:Result = {
     PCABS_white: 0,
     PCABS_gray: 0,
@@ -82,69 +70,35 @@ export function counter(wb:WorkBook, cfg:MaterialCounterConfig) {
     }
   }
 
-  for (let i = 0; i < sheets.length; i++) {
-    const sheet_name = sheets[i];
-    const data = wb.Sheets[sheet_name];
-    if (data === undefined) {
-      console.error('⚠️   This sheet not exist:', sheet_name);
-      continue;
+  for (let i = 0; i < orders.length; i++) {
+    const order = orders[i];
+    const { mtype, desc, amt } = order;
+    if (exprs.special.test(desc)) {
+      console.warn('⚠️   May need special material：', desc, order.sheet, order.line);
     }
-
-    const sheet_cfg = cfg.sheets[sheet_name];
-    let line = sheet_cfg.start || 5;
-    while(true) {
-      if (sheet_cfg.end === undefined) {
-        if (data['F' + line] == undefined) {
-          break;
-        }
-      }
-
-      if (sheet_cfg.end !== undefined && line > sheet_cfg.end) {
+    switch(mtype) {
+      case 'ABS+PC':
+        const PCABS = count_ABSPC(desc, amt);
+        update_result(PCABS);
         break;
-      }
-      const desc = data['F' + line].v;
-      const required = data['I'+ line].v;
-      if (exprs.special.test(desc)) {
-        console.warn('⚠️   May need special material：', sheet_name, line, desc);
-      }
-      const state = data['L' + line] ? data['L' + line].w : null;
-      if (state === 0) {
-        line++;
-        continue;
-      }
-      if (cfg.state === StateType.waiting && state !== null) {
-        line++;
-        continue;
-      } else if (cfg.state === StateType.custom && cfg.custom_states.indexOf(state) < 0) {
-        line++;
-        continue;
-      }
-      const mtype = data['N' + line].v;
-      switch(mtype) {
-        case 'ABS+PC':
-          const PCABS = count_ABSPC(desc, required);
-          update_result(PCABS);
-          break;
-        case 'AF365F':
-          const AF365F = count_AF365F(desc, required);
-          update_result(AF365F);
-          break;
-        case '121H':
-          const H121 = count_121H(desc, required);
-          update_result(H121);
-          break;
-        case '558A':
-          const A558 = count_558A(required);
-          update_result(A558);
-          break;
-        case 'GP22':
-          const GP22 = count_GP22(desc, required);
-          update_result(GP22);
-          break;
-        default:
-          console.warn('⚠️   Special:', mtype);
-      }
-      line++;
+      case 'AF365F':
+        const AF365F = count_AF365F(desc, amt);
+        update_result(AF365F);
+        break;
+      case '121H':
+        const H121 = count_121H(desc, amt);
+        update_result(H121);
+        break;
+      case '558A':
+        const A558 = count_558A(amt);
+        update_result(A558);
+        break;
+      case 'GP22':
+        const GP22 = count_GP22(desc, amt);
+        update_result(GP22);
+        break;
+      default:
+        console.warn('⚠️   Special:', mtype);
     }
   }
   return res;
@@ -181,9 +135,6 @@ function count_ABSPC(desc:string, amt:number) : PCABSRes {
     console.warn('⚠️   PC/ABS Unknown color:', desc);
   }
 
-  if (/WB/.test(desc)) {
-    res.PCABS_gray = res.PCABS_gray / 2;
-  }
   return res;
 }
 
