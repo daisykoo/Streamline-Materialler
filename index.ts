@@ -3,28 +3,46 @@ import * as XLSX from 'xlsx';
 import { ParsingOptions } from 'xlsx';
 import { get_orders, StateType } from './collector/orders';
 import { get_schedules } from './collector/schedule';
+import { get_morders } from './collector/morders';
+
 import { counter } from './material_counter';
+import { delay_founder } from './delay_founder';
 
 const config:ParsingOptions = {
   type:'buffer',
 }
 
-const schedule = fs.readFileSync('../2018年下半年排产表2.xlsx');
-const order = fs.readFileSync('../2018年注塑生产通知单2.xlsx');
+// const morder = fs.readFileSync('../宏远月度生产计划 7-27.xlsx');
+// const mwb = XLSX.read(morder, config);
+// const morders = get_morders(mwb, {});
+
+const schedule = fs.readFileSync('../2018年下半年排产表29.xlsx');
 const swb = XLSX.read(schedule, config);
 const schedules = get_schedules(swb, {
-  sheet: '7.1',
+  sheet: '7.29',
 });
+
+const order = fs.readFileSync('../2018年注塑生产通知单29.xlsx');
 const owb = XLSX.read(order, config);
 const orders = get_orders(owb, {
   sheets: {
-    '6.15WBWW黑未排': {},
-    '6.20': {},
-    '6.22.24': {},
+    '7.4WWC2': {},
+    '7.9': {},
+    '7.13': {},
+    '7.18': {},
+    '7.23': {},
+    '7.27 ': {},
   },
   state: StateType.waiting,
-  // custom_states: ['6/15/18']
 });
+
+// const delays = delay_founder(orders, morders);
+// debugger;
+// const blank = fs.readFileSync('../test.xlsx');
+// const bwb = XLSX.read(blank, config);
+// var ws = XLSX.utils.json_to_sheet(delays);
+// bwb.Sheets['工作表1'] = ws;
+// XLSX.writeFile(bwb, 'out.xlsx');
 
 const sres = counter(schedules);
 console.log('排产未生产：');
