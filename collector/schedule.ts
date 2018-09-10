@@ -33,8 +33,15 @@ export function get_schedules(wb:WorkBook, cfg:ScheduleConifg) : OrderData[] {
       }
       const arr = desc.split(' ');
       const mtype = arr.pop();
+      if (mtype == '') {
+        console.log('多余空格', desc);
+      }
       const amt_cell = list + (line + 2);
       const amt_data = data[amt_cell];
+      if (typeof amt_data === 'undefined') {
+        console.log('无数据', desc);
+        continue;
+      }
       const require = get_number(amt_data.v + '');
       
       if (amt_data == undefined || !require) {

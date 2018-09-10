@@ -11,6 +11,7 @@ export enum StateType {
   waiting,
   done,
   custom,
+  all,
 }
 
 export interface TargetData {
@@ -47,7 +48,7 @@ export function get_orders(wb:WorkBook, cfg:OrdersConfig) : OrderData[] {
       const desc = data['F' + line].v;
       const required = data['I'+ line].v;
       const state = data['L' + line] ? data['L' + line].w : null;
-      if (state === 0 
+      if (state === 0 && cfg.state !== StateType.all
         || (cfg.state === StateType.waiting && state !== null) 
         || (cfg.state === StateType.custom && cfg.custom_states.indexOf(state) < 0)) {
         line++;
@@ -60,6 +61,8 @@ export function get_orders(wb:WorkBook, cfg:OrdersConfig) : OrderData[] {
         amt: required,
         sheet: sheet_name,
         line,
+        date: data['A' + line] ? data['A' + line].w : undefined,
+        id: data['B' + line] ? data['B' + line].w : undefined,
       });
       line++;
     }

@@ -8,6 +8,10 @@ export interface OrderData {
   line:number;
 }
 
+export interface PC50FRRes {
+  PC50FR_white:number;
+}
+
 export interface PCABSRes {
   PCABS_white:number;
   PCABS_gray:number;
@@ -34,7 +38,7 @@ export interface H121Res {
   '121H_3L':number;
 }
 
-export type Result = PCABSRes & AF365FRes & GP22Res & A558Res & H121Res;
+export type Result = PCABSRes & AF365FRes & GP22Res & A558Res & H121Res & PC50FRRes;
 
 const exprs = {
   door: /门面/,
@@ -62,6 +66,7 @@ export function counter(orders:OrderData[]) {
     YK_white: 0,
     '558A': 0,
     '121H_3L': 0,
+    PC50FR_white: 0,
   }
   function update_result(type_result:Partial<Result>) {
     const types = Object.keys(type_result);
@@ -81,6 +86,10 @@ export function counter(orders:OrderData[]) {
         const PCABS = count_ABSPC(desc, amt);
         update_result(PCABS);
         break;
+      case 'PC+ABS':
+        const PCABS1 = count_ABSPC(desc, amt);
+        update_result(PCABS1);
+        break;
       case 'AF365F':
         const AF365F = count_AF365F(desc, amt);
         update_result(AF365F);
@@ -96,6 +105,14 @@ export function counter(orders:OrderData[]) {
       case 'GP22':
         const GP22 = count_GP22(desc, amt);
         update_result(GP22);
+        break;
+      case 'ABS-PC50FR':
+        const PC50FR = count_PC50FR(desc, amt);
+        update_result(PC50FR);
+        break;
+      case 'PC50FR':
+        const PC50FR1 = count_PC50FR(desc, amt);
+        update_result(PC50FR1);
         break;
       default:
         console.warn('⚠️   Special:', mtype);
@@ -121,7 +138,7 @@ function count_ABSPC(desc:string, amt:number) : PCABSRes {
     return res;
   }
 
-  const material_amt = amt / ratio;
+  const material_amt = Math.ceil(1000 * amt / ratio);
   //客版白
   if (exprs.PCABS_3L.test(desc)) {
     res['PCABS_3L'] = material_amt;
@@ -138,6 +155,25 @@ function count_ABSPC(desc:string, amt:number) : PCABSRes {
   return res;
 }
 
+function count_PC50FR(desc:string, amt:number) : PC50FRRes {
+  const res = {
+    PC50FR_white: 0,
+  };
+ 
+  let ratio = 0; 
+  if (exprs.door.test(desc)) {
+    ratio = 3000;
+  } else if(exprs.ctl.test(desc)) {
+    ratio = 5000;
+  } else {
+    console.log('⚠️   PC/ABS Not facade or control panel：', desc);
+    return res;
+  }
+
+  res.PC50FR_white = Math.ceil(1000 * amt / ratio);
+  return res;
+}
+
 function count_AF365F(desc:string, amt:number) {
   const res = {
     AF365F_white: 0,
@@ -145,7 +181,7 @@ function count_AF365F(desc:string, amt:number) {
     AF365F_black: 0,
     AF365F_red02: 0,
   };
-  const material_amt = amt / 6000;
+  const material_amt = Math.ceil(1000 * amt / 6000);
   if (!exprs.ctl.test(desc)) {
     console.log('⚠️   AF365F Not a control panel：', desc);
     return res;
@@ -169,7 +205,7 @@ function count_AF365F(desc:string, amt:number) {
 function count_121H(desc:string, amt:number) {
   if (exprs["121H_3L"].test(desc)) {
     return {
-      '121H_3L': amt * 300 / 1000000,
+      '121H_3L': Math.ceil(amt * 300 / 1000000),
     }
   } else {
     return {
@@ -180,7 +216,7 @@ function count_121H(desc:string, amt:number) {
 
 function count_558A(amt:number) {
   return {
-    '558A': amt / 5000 * 100,
+    '558A': Math.ceil(amt / 5000 * 100),
   }
 }
 
