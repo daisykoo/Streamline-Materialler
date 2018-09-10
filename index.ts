@@ -16,22 +16,21 @@ const config:ParsingOptions = {
 // const mwb = XLSX.read(morder, config);
 // const morders = get_morders(mwb, {});
 
-const schedule = fs.readFileSync('../2018年下半年排产表29.xlsx');
+const schedule = fs.readFileSync('../2018年下半年排产表1.xlsx');
 const swb = XLSX.read(schedule, config);
 const schedules = get_schedules(swb, {
-  sheet: '7.29',
+  sheet: '9.1',
 });
 
-const order = fs.readFileSync('../2018年注塑生产通知单29.xlsx');
+const order = fs.readFileSync('../2018年注塑生产通知单1.xlsx');
 const owb = XLSX.read(order, config);
 const orders = get_orders(owb, {
   sheets: {
-    '7.4WWC2': {},
-    '7.9': {},
-    '7.13': {},
-    '7.18': {},
-    '7.23': {},
-    '7.27 ': {},
+    '8.3WWMI': {},
+    '8.8 ': {},
+    '8.15': {},
+    '8.21': {},
+    '8.25': {},
   },
   state: StateType.waiting,
 });
